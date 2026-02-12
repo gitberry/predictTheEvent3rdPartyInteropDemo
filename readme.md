@@ -17,3 +17,7 @@ Current code works in a dev environment configured for a icebreakup.localhost on
 Designed to go into a folder - doesn't need to be at root but you need to edit
 config.php (only contains the URL of wherever you put it)
 and purchaseMock/index has a config variable that needs to have correct paths
+
+The there needs to be permission to write to the folders where the logs and jasnl files are created/updated:
+api/interop
+purchaseMock/api/signReceipt
