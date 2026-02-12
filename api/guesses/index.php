@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json');
+// CORS 
+// Rate limiting 
 
 $path = __DIR__ . "/../../data/";
 $fileName = $path . "guesses.json";

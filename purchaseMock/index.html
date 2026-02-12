@@ -86,7 +86,7 @@
             if (methodKey == "method1") {
                 let Ok2continue = false;
                 try {
-                    // In a real scenario, the their website would have CORS etc on the server to avoid generating fake info...                    
+                    // production website API's have CORS configured properly and other appropriate measures
                     sig = await apiWrapper('api/signReceipt/',payload, true);                     
                     // if we're here we add the sig to the payload and continue to the 3rd party
                     payload['sig'] = sig.hashedsig;
@@ -162,10 +162,10 @@
         };
 
         // usage:
-        //const displayArea = document.getElementById('display-area'); // just exist somewhere if you want api results feedback
-        //displayArea.innerHTML = UI.loading("Loading guesses fool!"); // or go with the default if you want..
+        //const displayArea = document.getElementById('display-area'); // a div in the html where you want api results feedback
+        //displayArea.innerHTML = UI.loading("Loading..."); // customize busy message if you wish something other than default
         //try {
-        //    // In a real scenario, use your full URL: /api/guesses
+        //    // production website API's have CORS configured properly and other appropriate measures
         //    const data = await apiWrapper('https://yourdomain.com/api/whatever');             
         //    //displayArea.innerHTML = UI.success(data);
         //    // or

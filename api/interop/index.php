@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../config.php'; 
 header('Content-Type: application/json');
+// CORS 
+// Rate limiting 
+
 // shared secret with 3rd party provider
 $secret = "5a7cc61d-fac5-46fc-8ebb-322fbd1a8955"; // typically stored in something not checked in by git..
 $json = file_get_contents('php://input');

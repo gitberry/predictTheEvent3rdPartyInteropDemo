@@ -86,6 +86,7 @@
                 displayArea.innerHTML = UI.loading("Loading guesses fool!");
             
                 try {
+                    // production website API's have CORS configured properly and other appropriate measures
                     guesses = await apiWrapper('api/guesses/');                     
                     displayArea.classList.add('hidden'); 
                 } catch (err) {
@@ -188,10 +189,10 @@
         };
 
         // usage:
-        //const displayArea = document.getElementById('display-area'); // just exist somewhere if you want api results feedback
-        //displayArea.innerHTML = UI.loading("Loading guesses fool!"); // or go with the default if you want..
+        //const displayArea = document.getElementById('display-area'); // a div in the html where you want api results feedback
+        //displayArea.innerHTML = UI.loading("Loading..."); // customize busy message if you wish something other than default
         //try {
-        //    // In a real scenario, use your full URL: /api/guesses
+        //    // production website API's have CORS configured properly and other appropriate measures
         //    const data = await apiWrapper('https://yourdomain.com/api/whatever');             
         //    //displayArea.innerHTML = UI.success(data);
         //    // or
