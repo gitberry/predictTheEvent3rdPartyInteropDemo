@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Interoperability Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center p-2">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Interop Test Suite</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Random Receipt # (Random for testing)</label>
+                <input type="text" id="inputText" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 border p-2" placeholder="Enter text...">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Last 4 Digits of CC# (Random for testing)</label>
+                <input type="text" id="inputCCsuffix" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 border p-2" placeholder="Enter text...">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Purchase $ (Random $10's)</label>
+                <input type="number" id="inputCurrency" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 border p-2">
+            </div>        
+
+            <hr class="my-6">
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="runInterop('method1')" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">Interop Via API</button>
+                <button onclick="runInterop('method2')" class="bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition">Manual Method</button>
+            </div>
+
+            <div class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200">
+                <p class="text-xs uppercase tracking-wider text-gray-500 font-semibold">Status</p>
+                <p id="statusField" class="text-sm text-gray-800 italic mt-1 font-mono break-all">Ready...</p>
+            </div>            
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // dev version configured for localhost 
+        const API_CONFIG = {
+            availabilityURL: "icebreakup.localhost",
+            method1: "http://icebreakup.localhost/api/interop/",
+            method2: "https://api.example.com/v2/interop"
+        };
+
+        function initURLs() {
+            thisObj = document.getElementById('availabilityURL');
+            if (thisObj) { thisObj.href = API_CONFIG.availabilityURL;}
+        }
+
+        function initRandomVals() {
+            thisObj = document.getElementById('inputCurrency');
+            if (thisObj) { thisObj.value = 10 * (Math.floor(Math.random() * 10) + 1);} // increments of $10 - the price of the ticket
+            thisObj = document.getElementById('inputCCsuffix');
+            if (thisObj) { thisObj.value = Math.floor(Math.random() * 9000) + 1000;} // 4 digits
+            thisObj = document.getElementById('inputText');
+            if (thisObj) { 
+                const store = "42";
+                const now = new Date();
+                const datePart = now.toISOString().slice(2,10).replace(/-/g, ''); 
+                const randomPart = Math.floor(Math.random() * 100000).toString().padStart(5, '0');                
+                const receipt = `${store}-${datePart}-${randomPart}`;
+                thisObj.value = receipt; 
+            } 
+        }
+
+        async function runInterop(methodKey) {
+            const status = document.getElementById('statusField');
+            const apiUrl = API_CONFIG[methodKey];
+            
+            // Gather data from inputs            
+            const payload = {
+                receipt: document.getElementById('inputText').value,
+                cc4suffix: document.getElementById('inputCCsuffix').value,                
+                purchase: parseFloat(document.getElementById('inputCurrency').value) || 0.0,                
+            };
+
+            if (methodKey == "method1") {
+                let Ok2continue = false;
+                try {
+                    // In a real scenario, the their website would have CORS etc on the server to avoid generating fake info...                    
+                    sig = await apiWrapper('api/signReceipt/',payload, true);                     
+                    // if we're here we add the sig to the payload and continue to the 3rd party
+                    payload['sig'] = sig.hashedsig;
+                    status.innerText = "generated signature:" + sig.hashedsig;
+                    Ok2continue = true;
+                } catch (err) {
+                    status.innerHTML = UI.error(err.message || "Failed to get hash or payload.");
+                }
+                if (Ok2continue) {                
+                    try {
+                        // In a real scenario, the their website would have CORS etc on the server to avoid generating fake info...                    
+                        interopRez = await apiWrapper(apiUrl,payload, true);                     
+                        if (interopRez?.verified === true) {
+                            status.innerHTML = "Thank you!.<br/>" + interopRez.message + "<br/>Next: put your ticket(s) on a time slot:<br/><a class='underline' target=_blank href='" + interopRez.redirect_url + "'>" + interopRez.redirect_url + "</a><br/>";                        
+                        }
+                    } catch (err) {
+                        status.innerHTML = UI.error(err.message || "Failed to get hash or payload.");
+                    }
+                }
+            }
+
+            if (methodKey == "method2") {
+                status.innerHTML = `Thank You for purchasing a ticket. After receiving your email confirming the purchase, use that information to go to the historical society website to use your ticket(s) to select the time-slot(s) you predict the river will break up in April 2026.`; //.innerText = "Multi line/nline2";
+            }
+
+        }
+
+         // api calling mini-infrastructure START ========
+         async function apiWrapper(endpoint,objPayload = [],isPost = false) {
+            try {   
+                let opts = {
+                    method: 'GET'                        
+                };
+                if ( isPost ) {
+                    opts = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(objPayload)
+                    };
+                }
+                const response = await fetch(endpoint, opts);                
+                
+                // Fetch only throws on network failure, not 404/500s.
+                // We must check response.ok manually.
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error("API Wrapper Error:", error);
+                throw error; // Re-throw so the UI layer can catch it
+            }
+        }
+
+        //  Component to API calls Functions that return HTML strings (tailwind styled as you wish)
+        const UI = {
+            // tweak the html to match your app
+            loading: (msg) => `<div class="animate-pulse text-blue-500 p-2">${msg ?? "Loading..."}</div>`,
+            error: (msg) => `
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                    <p class="font-bold">Something went wrong</p>
+                    <p class="text-sm">${msg}</p>
+                </div>`,
+            nice: (data) => `
+                <div class="p-4 bg-green-50 rounded-md">
+                    <pre class="text-xs text-green-800 overflow-auto">${data}</pre>
+                </div>`,
+            success: (data) => `
+                <div class="p-4 bg-green-50 rounded-md">
+                    <pre class="text-xs text-green-800 overflow-auto">${JSON.stringify(data, null, 2)}</pre>
+                </div>`
+        };
+
+        // usage:
+        //const displayArea = document.getElementById('display-area'); // just exist somewhere if you want api results feedback
+        //displayArea.innerHTML = UI.loading("Loading guesses fool!"); // or go with the default if you want..
+        //try {
+        //    // In a real scenario, use your full URL: /api/guesses
+        //    const data = await apiWrapper('https://yourdomain.com/api/whatever');             
+        //    //displayArea.innerHTML = UI.success(data);
+        //    // or
+        //    displayArea.classList.add('hidden'); // all good - other things will show don't need to over-notify..
+        //} catch (err) {
+        //    displayArea.innerHTML = UI.error(err.message || "Failed to connect to the server.");
+        //}
+
+        // api calling mini-infrastructure END ========        
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initURLs();
+            initRandomVals();
+        });
+
+    </script>
+</body>
+</html>

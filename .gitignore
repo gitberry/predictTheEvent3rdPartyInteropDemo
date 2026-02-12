@@ -1,0 +1,29 @@
+# --- Dependencies ---
+node_modules/
+vendor/
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+*.log
+cxonfig.php 
+
+# --- OS / IDE Specific ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- PHP Specific ---
+.phpunit.result.cache
+.php-cs-fixer.cache
+
+# --- Build Outputs (JS) ---
+dist/
+build/
+out/
+.parcel-cache/
+
+# -- custom
+[zZ][zZ]*

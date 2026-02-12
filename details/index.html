@@ -1,0 +1,314 @@
+                                                                                                           <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River Breakup Guessing Pool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+
+    <div class="max-w-6xl mx-auto p-2 md:p-3">
+        
+<header class="mb-2 flex justify-between items-end">
+    <div class="w-full">
+        <div class="flex gap-2"> 
+
+            <a href=".." class="flex-shrink-0 w-20 h-24 flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-green-50 shadow-sm transition-all duration-200 cursor-pointer hover:border-indigo-400 hover:bg-slate-50 hover:shadow-md active:scale-95">
+                <span class="text-[10px] uppercase text-slate-400 font-bold">&lt;&lt;&lt;&lt;</span>
+                <span class="text-2xl font-black text-slate-700">Back</span>
+                <span class="text-[10px] text-slate-400">To Big Picture</span>
+            </a>
+            
+            <div id="sole-day-wrapper" class="hidden flex-shrink-0 w-20 h-24 flex flex-col items-center justify-center rounded-xl border-2 cursor-pointer transition-all snap-center border-indigo-600 bg-indigo-50 shadow-sm">
+                <span id="sole-dow"   class="text-[10px] uppercase text-slate-400 font-bold">x</span>
+                <span id="sole-day"   class="text-2xl font-black text-slate-700">y</span>
+                <span id="sole-month" class="text-[10px] text-slate-400">z</span>
+            </div>
+        
+            <div class="flex-1 h-24 flex flex-col items-center justify-center cursor-pointer transition-all snap-center">
+                <img src="../logo.png" alt="Logo" class="w-auto mb-1 object-contain border border-gray-300 rounded-xl">
+                <span class="text-xl font-black text-slate-700">Set the Guess</span>                        
+            </div>
+        
+        </div>
+
+        <div id="display-area" class="space-y-4 p-3">
+            <p class="text-gray-500">Ready to fetch data...</p>
+        </div>        
+    </div>
+</header>        
+        
+        <div id="date-container" class="flex gap-3 overflow-x-auto pb-4 hide-scrollbar snap-x">
+            </div>
+
+        <div class="mt-2 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <div class="hidden p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h2 id="selected-date-label" class="font-semibold text-slate-700"></h2>
+                <span class="text-xs font-medium px-2 py-1 bg-red-300 text-indigo-900 rounded-full">24h View</span>
+            </div>
+
+            <div id="time-grid" class="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </div>
+
+        <div class="mt-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">            
+            <div id="time-grid" class="max-h-[65vh] overflow-y-auto p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            </div>
+        </div>        
+    </div>
+
+    <div id="details-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4" onclick="closeModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
+            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Guess</h3>
+            <p id="modal-text" class="text-lg font-medium text-slate-800 break-words mb-6 italic leading-snug"></p>
+            <button onclick="closeModal()" class="w-full bg-slate-100 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">X</button>
+        </div>
+    </div>
+
+    <div id="selection-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 transform translate-y-full transition-transform duration-300 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] z-50">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div>
+                <p class="text-xs text-slate-400 uppercase font-bold">Your Prediction</p>
+                <p id="final-selection-text" class="text-indigo-600 font-bold"></p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeDrawer()" class="px-4 mt-2 h-10 py-2 text-slate-400 font-medium bg-gray-500 rounded-xl">x</button>
+                <button onclick="pickStub()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-bold transition-shadow shadow-lg shadow-indigo-100">
+                    Pick Guesss Slot
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let guessesMap = {};  // need this here for global reach.. I hate myself for this a little bit...
+
+        function pickStub() {
+            console.log("Next step - confirm slot.");
+            alert("Confirmation of time slot process...");
+        }
+
+
+
+        function YYYY_MM_DD2jsDate(givenString) {
+            const [s_year, s_month, s_day] = givenString.split('-').map(Number);               
+            return new Date(s_year, s_month - 1, s_day);
+        }
+
+        function isValidDate(dateString) {
+            // Check format via Regex (YYYY-MM-DD)
+            const regEx = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateString || !dateString.match(regEx)) return false;
+            
+            // Check if JS can actually parse it
+            const d = new Date(dateString);
+            const dNum = d.getTime();
+            
+            // If dNum is NaN, the date is invalid (e.g., 2026-13-45)
+            return !isNaN(dNum);
+        }
+
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const dateParam = params.get('D'); // "2026-04-08"
+            const hourParam = params.get('H'); // "23"
+            if (dateParam && hourParam) {
+                console.log(`Target Date: ${dateParam}, Target Hour: ${hourParam}`);                                
+            } else {
+                console.log("no parameters - we'll just give you everything...")
+            }
+            if ( isValidDate(dateParam) ) {
+                // more self hate... loop should be refactored to not repeat shtufff
+                soleValue = YYYY_MM_DD2jsDate(dateParam);
+                document.getElementById('sole-day-wrapper').classList.remove('hidden');
+                document.getElementById('sole-dow').textContent = soleValue.toLocaleDateString('en-US', {weekday: 'short'});                
+                document.getElementById('sole-day').textContent = soleValue.getDate();
+                document.getElementById('sole-month').textContent = soleValue.toLocaleDateString('en-US', {month: 'short'});   
+                document.getElementById('date-container').classList.add('hidden');                
+            }
+
+            const displayArea = document.getElementById('display-area'); 
+            displayArea.innerHTML = UI.loading("Loading guesses..."); 
+            try {
+                guesses = await apiWrapper('../api/guesses/');                     
+                //displayArea.innerHTML = UI.success(data);
+                displayArea.classList.add('hidden'); // all good - other things will show don't need to over-notify..
+            } catch (err) {
+                // Set Generic Error State
+                displayArea.innerHTML = UI.error(err.message || "Failed to connect to the server.");
+            }
+ 
+            const config = { startDate: '2026-04-01', detailUrl: 'details/' }; 
+            const calculatedDays = isValidDate(dateParam) ? 1 : 30;
+            const finalDateStr = isValidDate(dateParam) ? dateParam : config.startDate;
+            const guessStart = YYYY_MM_DD2jsDate(finalDateStr);
+            guesses.forEach(g => guessesMap[g.guessDate] = g.guessInfoPublic);
+
+            const dateContainer = document.getElementById('date-container');
+            for (let i = 0; i < calculatedDays; i++) {                
+                const tmpDt = new Date(guessStart); 
+                tmpDt.setDate(tmpDt.getDate() + i);                                 
+                const dateKey = tmpDt.toISOString().split('T')[0];
+                
+                const card = document.createElement('div');
+                card.className = `flex-shrink-0 w-20 h-24 flex flex-col items-center justify-center rounded-xl border-2 cursor-pointer transition-all snap-center ${i === 0 ? 'border-indigo-600 bg-indigo-50 shadow-sm' : 'border-transparent bg-white shadow-sm hover:border-slate-200'}`;
+                card.innerHTML = `
+                    <span class="text-[10px] uppercase text-slate-400 font-bold">${tmpDt.toLocaleDateString('en-US', {weekday:'short'})}</span>
+                    <span class="text-2xl font-black text-slate-700">${tmpDt.getDate()}</span>
+                    <span class="text-[10px] text-slate-400">${tmpDt.toLocaleDateString('en-US', {month:'short'})}</span>
+                `;
+                card.onclick = () => {
+                    document.querySelectorAll('#date-container > div').forEach(el => {
+                        el.classList.replace('border-indigo-600', 'border-transparent');
+                        el.classList.replace('bg-indigo-50', 'bg-white');
+                    });
+                    card.classList.replace('border-transparent', 'border-indigo-600');
+                    card.classList.replace('bg-white', 'bg-indigo-50');
+                    renderGrid(dateKey);
+                };
+                dateContainer.appendChild(card);
+                console.log("debugz", guessStart.toISOString().split('T')[0]);
+            }
+            console.log("debug1", new Date().toISOString().split('T')[0]);
+            console.log("debug2", guessStart.toISOString().split('T')[0]);
+            renderGrid(guessStart.toISOString().split('T')[0]);
+
+            if (isValidDate(dateParam) && hourParam) {                
+                setTimeout(() => {
+                    targetDt = guessStart.toISOString().split('T')[0];                    
+                    const targetId = `date-${targetDt}-hour-${hourParam}-`; 
+                    console.log("Scroll down to: ", targetId);
+                    const elementToReach = document.getElementById(targetId);
+                    
+                    if (elementToReach) {
+                        //  Add a 'highlight' class so the selected hour stands out
+                        elementToReach.classList.add('bg-blue-200'); 
+                        elementToReach.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' // 'center' so it's not tucked under a header
+                        });
+                    }
+                }, 100); // 100ms is usually enough for the DOM to settle
+            }
+            
+        }
+
+        function renderGrid(dateKey) {
+            const grid = document.getElementById('time-grid');
+            const label = document.getElementById('selected-date-label');
+            const displayDate = new Date(dateKey + "T00:00:00");
+            niceDtLabel = displayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            label.innerText = niceDtLabel;
+            
+            grid.innerHTML = '';
+
+            for (let h = 0; h < 24; h++) {
+                const hh = h.toString().padStart(2, '0');
+                const hourWrapper = document.createElement('div');
+                const uniqueId = `date-${dateKey}-hour-${h}-`;
+                console.log("created id:", uniqueId);
+                hourWrapper.id = uniqueId;
+                hourWrapper.className = "bg-white border border-slate-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow";
+                
+                hourWrapper.innerHTML = `<div class="text-[11px] font-bold text-slate-400 mb-3 px-1">${hh}:00 — ${hh}:59&nbsp;&nbsp;&nbsp;${niceDtLabel}</div>`;
+                
+                const slotsGrid = document.createElement('div');
+                slotsGrid.className = "grid grid-cols-4 gap-1.5";
+
+                ['00', '15', '30', '45'].forEach(mm => {
+                    const timeKey = `${dateKey} ${hh}:${mm}`;
+                    const guess = guessesMap[timeKey];
+                    const btn = document.createElement('button');
+                    
+                    if (guess) {
+                        btn.className = "h-11 text-[9px] px-1.5 rounded-lg border border-amber-100 bg-amber-50/50 text-amber-700 font-medium overflow-hidden leading-tight flex items-center justify-center text-center italic";
+                        btn.innerHTML = `<span class="truncate-2-lines">${guess}</span>`;
+                        btn.onclick = () => {
+                            document.getElementById('modal-text').innerText = guess;
+                            document.getElementById('details-modal').classList.remove('hidden');
+                        };
+                    } else {
+                        btn.className = "h-11 text-xs rounded-lg border border-slate-50 bg-slate-50 hover:border-indigo-200 hover:bg-white hover:text-indigo-600 text-slate-500 font-bold transition-all active:scale-90";
+                        btn.innerText = `${mm}-${mm*1+14}`;
+                        btn.onclick = () => {
+                            document.getElementById('final-selection-text').innerHTML = `${dateKey}<br/>${hh}:${mm}-${mm*1+14}`;
+                            document.getElementById('selection-bar').classList.remove('translate-y-full');
+                        };
+                    }
+                    slotsGrid.appendChild(btn);
+                });
+
+                hourWrapper.appendChild(slotsGrid);
+                grid.appendChild(hourWrapper);
+            }
+        }
+
+        function closeDrawer() { document.getElementById('selection-bar').classList.add('translate-y-full'); }
+        function closeModal() { document.getElementById('details-modal').classList.add('hidden'); }
+
+         // api calling mini-infrastructure START ========
+         async function apiWrapper(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error("API Wrapper Error:", error);
+                throw error; // Re-throw so the UI layer can catch it
+            }
+        }
+
+        // UI Component to API calls Functions that return HTML strings 
+        const UI = {
+            // tweak the html to match your app
+            loading: (msg) => `<div class="animate-pulse text-blue-500 p-2">${msg ?? "Loading..."}</div>`,
+            error: (msg) => `
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                    <p class="font-bold">Something went wrong</p>
+                    <p class="text-sm">${msg}</p>
+                </div>`,
+            success: (data) => `
+                <div class="p-4 bg-green-50 rounded-md">
+                    <pre class="text-xs text-green-800 overflow-auto">${JSON.stringify(data, null, 2)}</pre>
+                </div>`
+        };
+
+        // usage:
+        //const displayArea = document.getElementById('display-area'); // just exist somewhere if you want api results feedback
+        //displayArea.innerHTML = UI.loading("Loading guesses fool!"); // or go with the default if you want..
+        //try {
+        //    // In a real scenario, use your full URL: /api/guesses
+        //    const data = await apiWrapper('https://yourdomain.com/api/whatever');             
+        //    //displayArea.innerHTML = UI.success(data);
+        //    // or
+        //    displayArea.classList.add('hidden'); // all good - other things will show don't need to over-notify..
+        //} catch (err) {
+        //    displayArea.innerHTML = UI.error(err.message || "Failed to connect to the server.");
+        //}
+
+        // api calling mini-infrastructure END ========
+
+
+        init();
+
+
+    </script>
+
+    <style>
+        /* Allows for two lines of text then truncates with ellipsis */
+        .truncate-2-lines {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</body>
+</html>
