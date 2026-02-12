@@ -21,3 +21,5 @@ and purchaseMock/index has a config variable that needs to have correct paths
 The there needs to be permission to write to the folders where the logs and jasnl files are created/updated:
 api/interop
 purchaseMock/api/signReceipt
+
+Security Disclaimers: CORS and Rate Limited omitted for this example. 
