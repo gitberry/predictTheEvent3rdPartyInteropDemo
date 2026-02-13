@@ -24,6 +24,8 @@ if (!isset($data['receipt'], $data['cc4suffix'], $data['purchase'])) {
 $stringToHash = $data['receipt'] . $data['cc4suffix'] . $data['purchase'] . $secret;
 $hash = hash('sha256', $stringToHash);
 
+// this would be a good place to have a server to server API call to transmit the data
+
 echo json_encode([
     'hashedsig' => $hash
 ]);

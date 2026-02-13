@@ -23,3 +23,11 @@ api/interop
 purchaseMock/api/signReceipt
 
 Security Disclaimers: CORS and Rate Limited omitted for this example. 
+
+The 3rd party call to our API would typically be called from their the 3rd party provider's server, 
+not from the client html in this example. 
+(a comment inserted in the purchaseMock APi to indicate appropriate place for call to our API )
+
+Other approaches could be done - for example: the client HTML could do a very simple API "ping"
+that would immediatly have your server make a secure and authenticated call to the 3rd party API 
+to get the rest of the data so that the 3rd party has more control over the process. 
