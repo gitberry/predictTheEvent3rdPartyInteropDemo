@@ -97,7 +97,7 @@
                 }
                 if (Ok2continue) {                
                     try {
-                        // In a real scenario, the their website would have CORS etc on the server to avoid generating fake info...                    
+                        // production website API's have CORS configured properly and other appropriate measures
                         interopRez = await apiWrapper(apiUrl,payload, true);                     
                         if (interopRez?.verified === true) {
                             status.innerHTML = "Thank you!.<br/>" + interopRez.message + "<br/>Next: put your ticket(s) on a time slot:<br/><a class='underline' target=_blank href='" + interopRez.redirect_url + "'>" + interopRez.redirect_url + "</a><br/>";                        
