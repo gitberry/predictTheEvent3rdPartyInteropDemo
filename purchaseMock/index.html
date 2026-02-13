@@ -87,24 +87,18 @@
                 let Ok2continue = false;
                 try {
                     // production website API's have CORS configured properly and other appropriate measures
-                    sig = await apiWrapper('api/signReceipt/',payload, true);                     
-                    // if we're here we add the sig to the payload and continue to the 3rd party
-                    payload['sig'] = sig.hashedsig;
-                    status.innerText = "generated signature:" + sig.hashedsig;
-                    Ok2continue = true;
+                    interOpRezult = await apiWrapper('api/interop/',payload, true);                     
+                    // check validity and forward
+                    if ( (interOpRezult?.verified ?? false) === true ) {
+                        //status.innerHTML = `Thank you - If this was a real app - after a succesful purchase you would be automatically forwarded to the next step in the process to pick your guesses here: <a class='underline text-blue-900' href='${interOpRezult.redirect_url}'>${interOpRezult.redirect_url}</a>..`;
+                        status.innerHTML = `${interOpRezult?.message ?? "Thank you - If this was a real app - after a succesful purchase you would be automatically forwarded to the next step in the process to pick your guesses here:"}<a class='underline text-blue-900' href='${interOpRezult.redirect_url}'>${interOpRezult.redirect_url}</a>..`;
+                        //window.location.href = interOpRezult.redirect_url; 
+                    } else {
+                    // if we're here the api finished but was a failure (success would have been a forward)
+                    status.innerHTML = UI.error("Problem occurred. <br/>" + interOpRezult?.message ?? "");
+                    }
                 } catch (err) {
                     status.innerHTML = UI.error(err.message || "Failed to get hash or payload.");
-                }
-                if (Ok2continue) {                
-                    try {
-                        // production website API's have CORS configured properly and other appropriate measures
-                        interopRez = await apiWrapper(apiUrl,payload, true);                     
-                        if (interopRez?.verified === true) {
-                            status.innerHTML = "Thank you!.<br/>" + interopRez.message + "<br/>Next: put your ticket(s) on a time slot:<br/><a class='underline' target=_blank href='" + interopRez.redirect_url + "'>" + interopRez.redirect_url + "</a><br/>";                        
-                        }
-                    } catch (err) {
-                        status.innerHTML = UI.error(err.message || "Failed to get hash or payload.");
-                    }
                 }
             }
 

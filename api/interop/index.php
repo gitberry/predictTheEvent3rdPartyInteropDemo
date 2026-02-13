@@ -4,10 +4,12 @@ header('Content-Type: application/json');
 // CORS 
 // Rate limiting 
 
-// shared secret with 3rd party provider
-$secret = "5a7cc61d-fac5-46fc-8ebb-322fbd1a8955"; // typically stored in something not checked in by git..
-$json = file_get_contents('php://input');
-$data = json_decode($json, true);
+// shared secret between both parties - EXAMPLE CODE - never should be stored in git DON'T DO THIS AT HOME KIDS
+$secret = "5a7cc61d-fac5-46fc-8ebb-322fbd1a8955"; 
+$apiKey = "d9751288-6974-40bc-892d-8a65564627e0";
+
+$jsonData = file_get_contents('php://input');
+$data = json_decode($jsonData, true);
 
 // log it
 $timestamp = date('Y-m-d H:i:s');
@@ -23,41 +25,56 @@ if (!isset($data['receipt'], $data['cc4suffix'], $data['purchase'])) {
 }
 
 $stringToHash = $data['receipt'] . $data['cc4suffix'] . $data['purchase'] . $secret;
-$hash = hash('sha256', $stringToHash);
+//$hash = hash('sha256', $stringToHash);
+$signature = hash_hmac('sha256', $jsonData, $secret);
 
-if ($hash == $data['sig']) {
-    $file = __DIR__ . '/validPurchases.jsonl';
-    $thisToken = generate_uuidV4();
-    $givenMessage = 'Valid Purchase Registered.';
-    // we're good to give the happy signal back - HOWEVER if this is a repeat call
-    //  - we want to let them know and log it...
-    $alreadyProcessed = findByKey($data['receipt'], $file, "data.receipt");    
-    if ( $alreadyProcessed ) {
-        $givenMessage = "Valid Purchase Registered prior at [" . ($alreadyProcessed['registered_at'] ?? "nada") . "]";
-        $thisToken = $alreadyProcessed['token'] ?? "token Missing";
-        // can't put a duplicate validation in valid Purchases file - but we want to log anything like this..
-        $file = __DIR__ . '/duplicateValidations.log';         
-    }
-    $rezult = [
-        'verified' => true,
-        'hash' => $hash, 
-        'message' => $givenMessage,
-        'token' => $thisToken,
-        'redirect_url' => BASE_URL . "/?token=$thisToken",
-        'registered_at' => $timestamp,
-        'data' => $data
-    ];
-    file_put_contents($file, json_encode($rezult) . PHP_EOL, FILE_APPEND);
-   
-} else {
+$receivedSignature = $_SERVER['HTTP_X_SIGNATURE'] ?? '';
+$receivedAPIkey    = $_SERVER['HTTP_X_API_KEY'] ?? '';
+if ( $receivedAPIkey == $apiKey) {
+    if ($signature == $receivedSignature) { // $hash == $data['sig']) {
+        $file = __DIR__ . '/validPurchases.jsonl';
+        $thisToken = generate_uuidV4();
+        $givenMessage = 'Valid Purchase Registered.';
+        // we're good to give the happy signal back - HOWEVER if this is a repeat call
+        //  - we want to let them know and log it...
+        $alreadyProcessed = findByKey($data['receipt'], $file, "data.receipt");    
+        if ( $alreadyProcessed ) {
+            $givenMessage = "Valid Purchase Registered prior at [" . ($alreadyProcessed['registered_at'] ?? "nada") . "]";
+            $thisToken = $alreadyProcessed['token'] ?? "token Missing";
+            // can't put a duplicate validation in valid Purchases file - but we want to log anything like this..
+            $file = __DIR__ . '/duplicateValidations.log';         
+        }
+        $rezult = [
+            'verified' => true,
+            'signature' => $signature, 
+            'message' => $givenMessage,
+            'token' => $thisToken,
+            'redirect_url' => BASE_URL . "/?token=$thisToken",
+            'registered_at' => $timestamp,
+            'data' => $data
+        ];
+        file_put_contents($file, json_encode($rezult) . PHP_EOL, FILE_APPEND);
+       
+    } else {
+        $rezult =     [
+            'verified' => false,
+            'signature' => $signature, 
+            'message' => 'INVALID signature.'
+        ];
+        // signature included only for example and debugging purposes - wouldn't normally show that
+        file_put_contents($file, json_encode($rezult), FILE_APPEND | LOCK_EX);
+    } 
+}
+else {
     $rezult =     [
-        'verified' => true,
-        'hash' => $hash, 
-        'message' => 'INVALID information.'
+        'verified' => false,
+        'receivedAPIkey' => $receivedAPIkey, 
+        'message' => 'INVALID API key.' 
     ];
+    // APIKey included only for example and debugging purposes - wouldn't normally show that
     file_put_contents($file, json_encode($rezult), FILE_APPEND | LOCK_EX);
 }
-
+// example does not return a http response status code - it should
 echo json_encode($rezult);
 die();
 
