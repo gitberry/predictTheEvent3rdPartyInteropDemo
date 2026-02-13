@@ -31,3 +31,7 @@ not from the client html in this example.
 Other approaches could be done - for example: the client HTML could do a very simple API "ping"
 that would immediatly have your server make a secure and authenticated call to the 3rd party API 
 to get the rest of the data so that the 3rd party has more control over the process. 
+
+The refactored code shows a server to server example.
+Note: The demo link does not do this since it's all on the same domain and my server blocks in API calls on same domain by default.  
+A deployment of this code as-is would not be a realistic scenario - everything in purchaseMock would be used as an example for the coders at the 3rd party service provider - who would obviously be on a different domain. 
